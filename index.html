@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passport Print Studio — 4×6 Print Sheet Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EA;
+    --panel:#FFFFFF;
+    --ink:#1C1F27;
+    --ink-soft:#666B78;
+    --navy:#22304A;
+    --navy-light:#334764;
+    --stamp:#B8452F;
+    --stamp-soft:#F0DCD4;
+    --line:#DEDACB;
+    --line-strong:#C7C2AD;
+    --success:#3F7A56;
+    --radius:12px;
+    --shadow: 0 1px 2px rgba(27,30,39,.05), 0 10px 26px rgba(27,30,39,.07);
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--stamp-soft);}
+
+  /* ---------- corner-bracket motif (signature element) ---------- */
+  .brackets{position:relative;}
+  .brackets::before,.brackets::after,
+  .brackets .bk-tr,.brackets .bk-bl{
+    content:"";position:absolute;width:16px;height:16px;
+    border-color:var(--stamp);border-style:solid;border-width:0;
+    opacity:.85;
+  }
+  .brackets::before{top:-1px;left:-1px;border-top-width:2px;border-left-width:2px;}
+  .brackets::after{bottom:-1px;right:-1px;border-bottom-width:2px;border-right-width:2px;}
+  .brackets .bk-tr{top:-1px;right:-1px;border-top-width:2px;border-right-width:2px;}
+  .brackets .bk-bl{bottom:-1px;left:-1px;border-bottom-width:2px;border-left-width:2px;}
+
+  header{padding:18px 20px 10px;text-align:center;}
+  .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;position:relative;margin-bottom:10px;}
+  .logo-mark span{position:absolute;inset:0;}
+  .logo-mark span::before,.logo-mark span::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--stamp);border-style:solid;}
+  .logo-mark span::before{top:0;left:0;border-width:2px 0 0 2px;}
+  .logo-mark span::after{bottom:0;right:0;border-width:0 2px 2px 0;}
+  h1{font-family:var(--font-display);font-weight:700;font-size:22px;margin:0 0 6px;letter-spacing:-.01em;}
+  header p{margin:0;color:var(--ink-soft);font-size:14.5px;max-width:520px;margin:0 auto;}
+  .priv-note{display:inline-block;margin-top:10px;font-family:var(--font-mono);font-size:11px;letter-spacing:.03em;color:var(--success);background:#EAF3EC;border:1px solid #CFE4D6;padding:4px 10px;border-radius:20px;}
+
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+  .field-stack{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+  select,input[type=number],input[type=text],input[type=color]{
+    font-family:var(--font-body);font-size:13.5px;color:var(--ink);
+    border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;background:#fff;
+  }
+  select:focus,input:focus,button:focus,.crop-frame:focus-within{outline:2px solid var(--navy-light);outline-offset:2px;}
+  .custom-size{display:flex;gap:8px;align-items:center;}
+  .custom-size input{width:64px;}
+
+  /* ---------- 3-column workspace ---------- */
+  .workspace{
+    max-width:1320px;margin:0 auto;padding:0 20px 50px;
+    display:grid;grid-template-columns:270px minmax(0,1fr) 300px;gap:18px;align-items:start;
+  }
+  @media (min-width:961px){
+    #colUpload,#colEdit{position:sticky;top:16px;}
+  }
+  @media (max-width:960px){
+    .workspace{grid-template-columns:1fr;}
+  }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;min-width:0;}
+  .panel h2{font-family:var(--font-display);font-size:17px;margin:0 0 3px;}
+  .panel .sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;}
+  .step-eyebrow{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;color:var(--stamp);text-transform:uppercase;margin:0 0 4px;}
+
+  /* ---------- dropzone ---------- */
+  .dropzone{
+    border:1.5px dashed var(--line-strong);border-radius:var(--radius);
+    padding:22px 16px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s;
+    background:#FCFBF7;
+  }
+  .dropzone.drag{border-color:var(--stamp);background:var(--stamp-soft);}
+  .dropzone p{margin:4px 0 0;color:var(--ink-soft);font-size:13px;}
+  .dropzone strong{font-size:15px;}
+  .dz-icon{width:36px;height:36px;margin:0 auto 10px;position:relative;}
+  .dz-icon svg{width:100%;height:100%;color:var(--navy);}
+
+  .editor-body{display:none;}
+  .editor-body.active{display:block;}
+
+  .crop-wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
+  .crop-frame{
+    position:relative;overflow:hidden;border-radius:6px;
+    background:#eee;touch-action:none;cursor:grab;box-shadow:var(--shadow);border:1px solid var(--line-strong);
+  }
+  .crop-frame:active{cursor:grabbing;}
+  .crop-frame canvas{display:block;width:100%;height:100%;}
+
+  .crop-side{flex:1;min-width:180px;display:flex;flex-direction:column;gap:10px;}
+  .row-btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+  button{
+    font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;
+    border-radius:8px;border:1px solid var(--line-strong);background:#fff;color:var(--ink);
+    padding:9px 14px;transition:transform .08s, background .12s, border-color .12s;
+  }
+  button:hover{border-color:var(--navy-light);}
+  button:active{transform:scale(.97);}
+  button.primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+  button.primary:hover{background:var(--navy-light);}
+  button.stamp{background:var(--stamp);border-color:var(--stamp);color:#fff;}
+  button.stamp:hover{background:#a03b26;}
+  button.ghost{background:transparent;border-color:transparent;color:var(--ink-soft);text-decoration:underline;padding:6px 4px;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+
+  .slider-row{display:flex;flex-direction:column;gap:4px;}
+  .slider-row .lbl{display:flex;justify-content:space-between;font-size:12.5px;}
+  .slider-row .lbl b{font-weight:600;}
+  .slider-row .lbl span{font-family:var(--font-mono);color:var(--ink-soft);font-size:11.5px;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--line-strong);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--navy);border:2px solid #fff;box-shadow:0 0 0 1px var(--navy-light);cursor:pointer;margin-top:-1px;}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--navy);border:2px solid #fff;box-shadow:0 0 0 1px var(--navy-light);cursor:pointer;}
+
+  hr.div{border:none;border-top:1px solid var(--line);margin:2px 0;}
+
+  details.adv-details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#FCFBF7;margin-bottom:12px;}
+  details.adv-details summary{cursor:pointer;font-weight:600;font-size:13px;padding:4px 0;}
+  details.adv-details[open] summary{margin-bottom:6px;}
+  details.adv-details.armed{border-color:var(--stamp);background:var(--stamp-soft);}
+  .bg-tool .tip{font-size:11.5px;color:var(--ink-soft);margin:2px 0 10px;line-height:1.4;}
+  .bg-tool-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .swatch-lbl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);}
+
+  .photo-hint{font-size:12.5px;color:var(--ink);background:#F4F1E8;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:0 0 12px;}
+  .photo-hint b{color:var(--stamp);}
+  .quickfix-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+
+  .frame-title{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 8px;}
+  .frame-title h3{font-size:12.5px;margin:0;font-family:var(--font-mono);letter-spacing:.02em;text-transform:uppercase;color:var(--ink-soft);}
+  .commit-row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .commit-status{font-size:12px;color:var(--success);font-family:var(--font-mono);display:none;}
+  .commit-status.show{display:inline-block;}
+
+  /* ---------- sheet layout settings (single column: lives in a narrow sidebar) ---------- */
+  .sheet-settings{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:4px;}
+  .checkfield{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .checkfield input{width:16px;height:16px;}
+
+  .count-badge{
+    display:inline-flex;align-items:baseline;gap:6px;font-family:var(--font-mono);
+    background:var(--navy);color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;margin-bottom:14px;
+  }
+  .count-badge b{font-size:15px;}
+
+  .sheet-preview-wrap{
+    background:#EDEAE0;border:1px solid var(--line);border-radius:10px;
+    padding:16px;display:flex;justify-content:center;
+  }
+  #sheetCanvas{max-width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);}
+  #processedCanvas{max-height:300px;max-width:100%;width:auto;height:auto;}
+
+  .empty-note{font-size:13px;color:var(--ink-soft);text-align:center;padding:26px 10px;}
+
+  .sheet-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+
+  footer{text-align:center;padding:10px 20px 40px;color:var(--ink-soft);font-size:11.5px;font-family:var(--font-mono);}
+
+  #printArea{display:none;}
+  @media print{
+    html,body{height:auto !important;}
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;margin:0;padding:0;}
+    #printArea img{display:block;}
+    @page{margin:0;}
+  }
+  .bg-mode-btn.active-bg {
+    background: var(--navy) !important;
+    border-color: var(--navy) !important;
+    color: #fff !important;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark"><span></span></div>
+  <h1>Passport Print Studio</h1>
+  <p>Crop to the correct Indian passport size, clean up the shot, then tile it onto a ready-to-cut 4×6&nbsp;in print sheet.</p>
+  <div class="priv-note">🔒 runs entirely in this tab — your photo is never uploaded anywhere</div>
+</header>
+
+<main class="workspace">
+
+  <!-- ===================== LEFT: IMPORT ===================== -->
+  <div class="panel" id="colUpload">
+    <p class="step-eyebrow">Import</p>
+    <h2>Your Photo</h2>
+    <p class="sub">Upload, then drag inside the frame to fit the face.</p>
+
+    <div class="field-stack">
+      <div class="field">
+        <label for="photoSize">Photo size</label>
+        <select id="photoSize">
+          <option value="35x45" selected>Indian Passport — 35 × 45 mm</option>
+          <option value="51x51">Square (OCI / Visa) — 51 × 51 mm</option>
+          <option value="custom">Custom size…</option>
+        </select>
+      </div>
+      <div class="field" id="customSizeField" style="display:none;">
+        <label>Custom (mm)</label>
+        <div class="custom-size">
+          <input type="number" id="customW" value="35" min="10" max="90" aria-label="width mm"> ×
+          <input type="number" id="customH" value="45" min="10" max="90" aria-label="height mm">
+        </div>
+      </div>
+      <div class="field">
+        <label for="dpi">Print quality</label>
+        <select id="dpi">
+          <option value="150">150 DPI — draft</option>
+          <option value="300" selected>300 DPI — recommended</option>
+          <option value="600">600 DPI — high quality</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="dropzone" class="dropzone brackets" tabindex="0" role="button" aria-label="Upload photo">
+      <span class="bk-tr"></span><span class="bk-bl"></span>
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 16l-5.5-5.5a1.5 1.5 0 0 0-2.1 0L4 19"/></svg>
+      </div>
+      <strong>Drag &amp; drop a photo here</strong>
+      <p>or click to browse — JPG / PNG</p>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;">
+    </div>
+
+    <div id="editorBody" class="editor-body">
+      <div class="crop-wrap" style="margin-top:16px;">
+        <div id="cropFrame" class="crop-frame brackets" tabindex="0" aria-label="Drag to reposition the photo">
+          <span class="bk-tr"></span><span class="bk-bl"></span>
+          <canvas id="frameCanvas"></canvas>
+        </div>
+        <div class="crop-side">
+          <div class="slider-row">
+            <div class="lbl"><b>Zoom</b><span id="zoomVal">100%</span></div>
+            <input type="range" id="zoom" min="100" max="400" value="100">
+          </div>
+          <div class="row-btns">
+            <button id="rotateL">⟲ Left</button>
+            <button id="rotateR">⟲ Right</button>
+          </div>
+          <button id="newPhoto" class="ghost" style="text-align:left;padding:2px 0;">Choose a different photo</button>
+          <p style="font-size:12px;color:var(--ink-soft);margin:0;">Drag inside the frame to reposition the face.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CENTER: PREVIEW & EXPORT ===================== -->
+  <div class="panel" id="colPreview">
+    <p class="step-eyebrow">Preview &amp; Export</p>
+    <h2>Print-Ready Preview</h2>
+    <p class="sub">Updates live as you edit. Download or print when it looks right.</p>
+
+    <div id="photoPreviewBlock" class="editor-body">
+      <div class="frame-title">
+        <h3>Photo preview</h3>
+        <span id="pxDims" style="font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);"></span>
+      </div>
+      <div class="sheet-preview-wrap" style="padding:10px;">
+        <canvas id="processedCanvas"></canvas>
+      </div>
+      <div class="commit-row">
+        <button id="commitBtn" class="primary">Scroll to Print Sheet ↓</button>
+        <span id="commitStatus" class="commit-status" style="display:none;">✓ Added to sheet</span>
+      </div>
+    </div>
+    <p id="photoPreviewEmpty" class="empty-note">Upload a photo on the left to see the live preview here.</p>
+
+    <hr class="div" style="margin:18px 0;">
+
+    <div class="frame-title"><h3>Print sheet</h3></div>
+    <div id="countBadgeWrap"></div>
+    <div class="sheet-preview-wrap">
+      <canvas id="sheetCanvas" style="display:none;"></canvas>
+      <p id="sheetEmpty" class="empty-note">Prepare and commit a photo to see your print layout here.</p>
+    </div>
+    <div class="sheet-actions">
+      <button id="downloadBtn" class="primary" disabled>⬇ Download PNG</button>
+      <button id="printBtn" class="stamp" disabled>🖨 Print sheet</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;">Tip: in the print dialog, choose 4×6&quot; photo paper and turn off “fit to page” scaling.</p>
+  </div>
+
+  <!-- ===================== RIGHT: EDIT ===================== -->
+  <div class="panel" id="colEdit">
+    <p class="step-eyebrow">Edit</p>
+    <h2>Adjust &amp; Arrange</h2>
+    <p class="sub">Fine-tune the shot, then set how it repeats on the sheet.</p>
+
+    <div id="editControls" class="editor-body">
+      <div class="row-btns" style="margin-bottom:10px;">
+        <button id="autoEnhance" class="stamp">✨ Auto enhance</button>
+        <button id="resetAdjust" class="ghost">Reset</button>
+      </div>
+
+      <p id="photoHint" class="photo-hint">Load a photo to get quick suggestions here.</p>
+
+      <div class="quickfix-row">
+        <button type="button" id="qfBrighten">🔅 Brighten</button>
+        <button type="button" id="qfDarken">🌑 Darken</button>
+        <button type="button" id="qfPop">⚡ Add pop</button>
+      </div>
+
+      <details class="adv-details">
+        <summary>Fine-tune manually</summary>
+        <div style="display:grid;gap:14px;padding-top:6px;">
+          <div class="slider-row">
+            <div class="lbl"><b>Brightness</b><span id="brightnessVal">100%</span></div>
+            <input type="range" id="brightness" min="60" max="160" value="100">
+          </div>
+          <div class="slider-row">
+            <div class="lbl"><b>Contrast</b><span id="contrastVal">100%</span></div>
+            <input type="range" id="contrast" min="60" max="160" value="100">
+          </div>
+          <div class="slider-row">
+            <div class="lbl"><b>Saturation</b><span id="saturateVal">100%</span></div>
+            <input type="range" id="saturate" min="0" max="200" value="105">
+          </div>
+          <div class="slider-row">
+            <div class="lbl"><b>Sharpen</b><span id="sharpenVal">0%</span></div>
+            <input type="range" id="sharpen" min="0" max="100" value="20">
+          </div>
+          <div class="slider-row">
+            <div class="lbl"><b>Brighten face</b><span id="faceBrightenVal">0%</span></div>
+            <input type="range" id="faceBrighten" min="0" max="100" value="0">
+            <p style="font-size:11px;color:var(--ink-soft);margin:2px 0 0;">Auto-detects skin tone and gently lifts it.</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="bg-color-selector" style="margin-bottom:14px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #FCFBF7;">
+        <h3 style="font-size:12.5px;margin:0 0 8px;font-family:var(--font-mono);letter-spacing:.02em;text-transform:uppercase;color:var(--ink-soft);">Background Color</h3>
+        <div class="bg-options-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <button type="button" id="bgModeOriginal" class="bg-mode-btn active-bg" style="padding:6px 10px;font-size:12px;">Original</button>
+          <button type="button" id="bgModeWhite" class="bg-mode-btn" style="padding:6px 10px;font-size:12px;">White</button>
+          <button type="button" id="bgModeBlue" class="bg-mode-btn" style="padding:6px 10px;font-size:12px;">Light Blue</button>
+          <button type="button" id="bgModeGrey" class="bg-mode-btn" style="padding:6px 10px;font-size:12px;">Light Grey</button>
+          <button type="button" id="bgModeCustom" class="bg-mode-btn" style="padding:6px 10px;font-size:12px;">Custom</button>
+        </div>
+        <div id="customBgContainer" style="display:none;align-items:center;gap:10px;margin-bottom:10px;">
+          <label class="swatch-lbl" style="font-size:12px;">Fill color: <input type="color" id="customBgColor" value="#b9d2f2" style="width:40px;height:25px;padding:0;border:1px solid var(--line-strong);border-radius:4px;cursor:pointer;"></label>
+        </div>
+        <div class="slider-row bg-tolerance-row" id="bgToleranceRow" style="display:none;margin-top:6px;">
+          <div class="lbl"><b>Tolerance</b><span id="bgToleranceVal">30%</span></div>
+          <input type="range" id="bgToleranceSlider" min="5" max="80" value="30">
+        </div>
+        <div id="manualCleanContainer" style="display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:11.5px;color:var(--ink-soft);">Need extra cleanup?</span>
+            <button id="bgUndo" class="ghost" style="padding:2px 6px;font-size:11px;" disabled>Undo click</button>
+          </div>
+          <button id="bgArm" style="width:100%;font-size:12px;padding:6px 10px;">Turn on click-to-clean</button>
+          <p class="tip" style="font-size:11px;color:var(--ink-soft);margin:4px 0 0;line-height:1.3;">Click anywhere in the photo preview (center) to clean specific spots.</p>
+        </div>
+      </div>
+    </div>
+    <p id="editControlsEmpty" class="empty-note" style="padding:16px 0;">Upload a photo on the left to unlock editing tools.</p>
+
+    <hr class="div" style="margin:16px 0;">
+
+    <p class="step-eyebrow">Sheet layout</p>
+    <div class="sheet-settings">
+      <div class="field">
+        <label for="orientation">Sheet orientation</label>
+        <select id="orientation">
+          <option value="portrait">Portrait (4 × 6 in)</option>
+          <option value="landscape" selected>Landscape (6 × 4 in)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="marginMm">Margin (mm)</label>
+        <input type="number" id="marginMm" value="1" min="0" max="20">
+      </div>
+      <div class="field">
+        <label for="gapMm">Gap between photos (mm)</label>
+        <input type="number" id="gapMm" value="3" min="0" max="15">
+      </div>
+      <div class="field">
+        <label for="copiesMode">Copies</label>
+        <select id="copiesMode">
+          <option value="auto" selected>Fill sheet automatically</option>
+          <option value="manual">Choose exact number</option>
+        </select>
+      </div>
+      <div class="field" id="copiesCountField" style="display:none;">
+        <label for="copiesCount">Number of copies</label>
+        <input type="number" id="copiesCount" value="4" min="1" max="40">
+      </div>
+      <div class="field">
+        <label for="guideColor">Cut guide colour</label>
+        <input type="color" id="guideColor" value="#b8452f">
+      </div>
+      <label class="checkfield"><input type="checkbox" id="showGuides" checked> Show corner cut guides</label>
+      <button type="button" id="quick4" class="ghost" style="text-align:left;padding:2px 0;">Just need 4 copies? → set it, rest stays blank</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>PASSPORT PRINT STUDIO · works offline · no photo ever leaves your browser</footer>
+
+<div id="printArea"><img id="printImg" alt=""></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- state ---------------- */
+  var state = {
+    sourceCanvas: null,   // current (possibly rotated) full-res source image as canvas
+    zoom: 1,              // 1..4
+    ox: 0, oy: 0,         // offset in nominal units (top-left of scaled image rel. to frame)
+    sizeMm: {w:35, h:45},
+    dpi: 300,
+    bgArmed: false,
+    committedCanvas: null,
+    bgMode: 'original',   // 'original', 'white', 'blue', 'grey', 'custom'
+    manualBgFills: []     // array of {srcX, srcY}
+  };
+  var NOMW = 1000; // nominal reference width for crop math (resolution independent)
+
+  /* ---------------- element refs ---------------- */
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('fileInput');
+  var editorBody = document.getElementById('editorBody');
+  var cropFrame = document.getElementById('cropFrame');
+  var frameCanvas = document.getElementById('frameCanvas');
+  var frameCtx = frameCanvas.getContext('2d');
+  var processedCanvas = document.getElementById('processedCanvas');
+  var processedCtx = processedCanvas.getContext('2d');
+  var pxDims = document.getElementById('pxDims');
+
+  var photoSizeSel = document.getElementById('photoSize');
+  var customSizeField = document.getElementById('customSizeField');
+  var customW = document.getElementById('customW');
+  var customH = document.getElementById('customH');
+  var dpiSel = document.getElementById('dpi');
+
+  var zoomInput = document.getElementById('zoom');
+  var zoomVal = document.getElementById('zoomVal');
+  var brightness = document.getElementById('brightness');
+  var contrast = document.getElementById('contrast');
+  var saturate = document.getElementById('saturate');
+  var sharpen = document.getElementById('sharpen');
+  var faceBrighten = document.getElementById('faceBrighten');
+
+  var bgModeOriginal = document.getElementById('bgModeOriginal');
+  var bgModeWhite = document.getElementById('bgModeWhite');
+  var bgModeBlue = document.getElementById('bgModeBlue');
+  var bgModeGrey = document.getElementById('bgModeGrey');
+  var bgModeCustom = document.getElementById('bgModeCustom');
+  var customBgContainer = document.getElementById('customBgContainer');
+  var customBgColor = document.getElementById('customBgColor');
+  var bgToleranceRow = document.getElementById('bgToleranceRow');
+  var bgToleranceSlider = document.getElementById('bgToleranceSlider');
+  var bgToleranceVal = document.getElementById('bgToleranceVal');
+  var manualCleanContainer = document.getElementById('manualCleanContainer');
+  var bgArm = document.getElementById('bgArm');
+  var bgUndo = document.getElementById('bgUndo');
+
+  var commitBtn = document.getElementById('commitBtn');
+  var commitStatus = document.getElementById('commitStatus');
+
+  var sheetCanvas = document.getElementById('sheetCanvas');
+  var sheetCtx = sheetCanvas.getContext('2d');
+  var sheetEmpty = document.getElementById('sheetEmpty');
+  var countBadgeWrap = document.getElementById('countBadgeWrap');
+  var orientationSel = document.getElementById('orientation');
+  var marginMm = document.getElementById('marginMm');
+  var gapMm = document.getElementById('gapMm');
+  var guideColor = document.getElementById('guideColor');
+  var showGuides = document.getElementById('showGuides');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var printBtn = document.getElementById('printBtn');
+  var copiesMode = document.getElementById('copiesMode');
+  var copiesCount = document.getElementById('copiesCount');
+  var copiesCountField = document.getElementById('copiesCountField');
+  var quick4 = document.getElementById('quick4');
+
+  var photoHint = document.getElementById('photoHint');
+  var qfBrighten = document.getElementById('qfBrighten');
+  var qfDarken = document.getElementById('qfDarken');
+  var qfPop = document.getElementById('qfPop');
+
+  var editControls = document.getElementById('editControls');
+  var editControlsEmpty = document.getElementById('editControlsEmpty');
+  var photoPreviewBlock = document.getElementById('photoPreviewBlock');
+  var photoPreviewEmpty = document.getElementById('photoPreviewEmpty');
+
+  function showEditor(on){
+    editorBody.classList.toggle('active', on);
+    editControls.classList.toggle('active', on);
+    photoPreviewBlock.classList.toggle('active', on);
+    photoPreviewEmpty.style.display = on ? 'none' : 'block';
+    editControlsEmpty.style.display = on ? 'none' : 'block';
+  }
+
+  /* ---------------- helpers ---------------- */
+  function mmToPx(mm, dpi){ return Math.round(mm/25.4*dpi); }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  function currentAspect(){ return state.sizeMm.w/state.sizeMm.h; } // w/h
+
+  function nomDims(){
+    var aspect = currentAspect();
+    var h = NOMW/aspect;
+    return {w:NOMW, h:h};
+  }
+
+  function baseScale(iw, ih){
+    var n = nomDims();
+    return Math.max(n.w/iw, n.h/ih);
+  }
+
+  function clampOffset(){
+    if(!state.sourceCanvas) return;
+    var iw = state.sourceCanvas.width, ih = state.sourceCanvas.height;
+    var n = nomDims();
+    var scale = baseScale(iw, ih) * state.zoom;
+    var dw = iw*scale, dh = ih*scale;
+    state.ox = clamp(state.ox, n.w - dw, 0);
+    state.oy = clamp(state.oy, n.h - dh, 0);
+  }
+
+  function cropRect(){
+    var iw = state.sourceCanvas.width, ih = state.sourceCanvas.height;
+    var n = nomDims();
+    var scale = baseScale(iw, ih) * state.zoom;
+    var sx = -state.ox/scale, sy = -state.oy/scale;
+    var sw = n.w/scale, sh = n.h/scale;
+    return {sx:sx, sy:sy, sw:sw, sh:sh};
+  }
+
+  function cssFilterString(){
+    return 'brightness('+brightness.value+'%) contrast('+contrast.value+'%) saturate('+saturate.value+'%)';
+  }
+
+  /* ---------------- size / dpi settings ---------------- */
+  function applySizeSetting(){
+    var v = photoSizeSel.value;
+    if(v==='35x45'){ state.sizeMm = {w:35,h:45}; customSizeField.style.display='none'; }
+    else if(v==='51x51'){ state.sizeMm = {w:51,h:51}; customSizeField.style.display='none'; }
+    else { customSizeField.style.display='flex'; state.sizeMm = {w:+customW.value||35, h:+customH.value||45}; }
+    layoutFrame();
+    clampOffset();
+    scheduleProcess();
+    buildSheet();
+  }
+  photoSizeSel.addEventListener('change', applySizeSetting);
+  customW.addEventListener('input', applySizeSetting);
+  customH.addEventListener('input', applySizeSetting);
+  dpiSel.addEventListener('change', function(){ state.dpi = +dpiSel.value; scheduleProcess(); buildSheet(); });
+
+  function layoutFrame(){
+    var aspect = currentAspect();
+    var maxW = 215, maxH = 276;
+    var w, h;
+    if(maxW/aspect <= maxH){ w = maxW; h = maxW/aspect; }
+    else { h = maxH; w = maxH*aspect; }
+    cropFrame.style.width = w+'px';
+    cropFrame.style.height = h+'px';
+    frameCanvas.width = Math.round(w*2);
+    frameCanvas.height = Math.round(h*2);
+  }
+
+  /* ---------------- file loading ---------------- */
+  function loadFile(file){
+    if(!file || !file.type.match(/^image\//)) return;
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img,0,0);
+      state.sourceCanvas = c;
+      state.zoom = 1; state.ox = 0; state.oy = 0;
+      layoutFrame();
+      var n = nomDims();
+      var scale = baseScale(c.width,c.height);
+      // center
+      state.ox = (n.w - c.width*scale)/2;
+      state.oy = (n.h - c.height*scale)/2;
+      clampOffset();
+      showEditor(true);
+      zoomInput.value = 100; zoomVal.textContent='100%';
+      resetSliders(false);
+      clearBgUndo();
+      scheduleProcess();
+      editorBody.scrollIntoView({behavior:'smooth', block:'nearest'});
+    };
+    img.onerror = function(){ alert('Could not read that image. Please try another file.'); };
+    img.src = URL.createObjectURL(file);
+  }
+
+  dropzone.addEventListener('click', function(){ fileInput.click(); });
+  dropzone.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') fileInput.click(); });
+  fileInput.addEventListener('change', function(e){ loadFile(e.target.files[0]); });
+  ['dragenter','dragover'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', function(e){
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    loadFile(f);
+  });
+  document.getElementById('newPhoto').addEventListener('click', function(){ fileInput.click(); });
+
+  /* ---------------- rotate ---------------- */
+  function rotate(dir){
+    if(!state.sourceCanvas) return;
+    var c = state.sourceCanvas;
+    var rc = document.createElement('canvas');
+    rc.width = c.height; rc.height = c.width;
+    var rctx = rc.getContext('2d');
+    rctx.translate(rc.width/2, rc.height/2);
+    rctx.rotate(dir==='l' ? -Math.PI/2 : Math.PI/2);
+    rctx.drawImage(c, -c.width/2, -c.height/2);
+    state.sourceCanvas = rc;
+    var n = nomDims();
+    var scale = baseScale(rc.width, rc.height);
+    state.zoom = 1; zoomInput.value=100; zoomVal.textContent='100%';
+    state.ox = (n.w - rc.width*scale)/2;
+    state.oy = (n.h - rc.height*scale)/2;
+    clampOffset();
+    clearBgUndo();
+    scheduleProcess();
+  }
+  document.getElementById('rotateL').addEventListener('click', function(){ rotate('l'); });
+  document.getElementById('rotateR').addEventListener('click', function(){ rotate('r'); });
+
+  /* ---------------- pan (drag) ---------------- */
+  var dragging = false, lastX=0, lastY=0;
+  function pointerDown(x,y){ dragging = true; lastX=x; lastY=y; }
+  function pointerMove(x,y){
+    if(!dragging || !state.sourceCanvas) return;
+    var rect = cropFrame.getBoundingClientRect();
+    var factor = NOMW / rect.width;
+    state.ox += (x-lastX)*factor;
+    state.oy += (y-lastY)*factor;
+    lastX=x; lastY=y;
+    clampOffset();
+    scheduleProcess();
+  }
+  function pointerUp(){ dragging = false; }
+  cropFrame.addEventListener('mousedown', function(e){ pointerDown(e.clientX,e.clientY); });
+  window.addEventListener('mousemove', function(e){ pointerMove(e.clientX,e.clientY); });
+  window.addEventListener('mouseup', pointerUp);
+  cropFrame.addEventListener('touchstart', function(e){ var t=e.touches[0]; pointerDown(t.clientX,t.clientY); }, {passive:true});
+  cropFrame.addEventListener('touchmove', function(e){ var t=e.touches[0]; pointerMove(t.clientX,t.clientY); e.preventDefault(); }, {passive:false});
+  cropFrame.addEventListener('touchend', pointerUp);
+
+  /* ---------------- zoom & sliders ---------------- */
+  zoomInput.addEventListener('input', function(){
+    state.zoom = zoomInput.value/100;
+    zoomVal.textContent = zoomInput.value+'%';
+    clampOffset();
+    scheduleProcess();
+  });
+  function syncAllLabels(){
+    ['brightness','contrast','saturate','sharpen','faceBrighten'].forEach(function(id){
+      document.getElementById(id+'Val').textContent = document.getElementById(id).value+'%';
+    });
+  }
+
+  [brightness,contrast,saturate,sharpen,faceBrighten].forEach(function(el){
+    el.addEventListener('input', function(){
+      syncAllLabels();
+      clearBgUndo();
+      scheduleProcess();
+    });
+  });
+
+  function resetSliders(reprocess){
+    brightness.value=100; contrast.value=100; saturate.value=105; sharpen.value=20; faceBrighten.value=0;
+    syncAllLabels();
+    if(reprocess!==false) scheduleProcess();
+  }
+  document.getElementById('resetAdjust').addEventListener('click', function(){ resetSliders(); clearBgUndo(); });
+
+  document.getElementById('autoEnhance').addEventListener('click', function(){
+    if(!state.sourceCanvas) return;
+    brightness.value = 108; contrast.value = 112; saturate.value = 112; sharpen.value = 35; faceBrighten.value = 25;
+    syncAllLabels();
+    clearBgUndo();
+    scheduleProcess();
+  });
+
+  /* ---------------- quick-fix shortcuts ---------------- */
+  function nudge(el, delta, lo, hi){ el.value = clamp((+el.value)+delta, lo, hi); }
+
+  qfBrighten.addEventListener('click', function(){
+    if(!state.sourceCanvas) return;
+    nudge(brightness, 12, 60, 160);
+    syncAllLabels(); clearBgUndo(); scheduleProcess();
+  });
+  qfDarken.addEventListener('click', function(){
+    if(!state.sourceCanvas) return;
+    nudge(brightness, -12, 60, 160);
+    syncAllLabels(); clearBgUndo(); scheduleProcess();
+  });
+  qfPop.addEventListener('click', function(){
+    if(!state.sourceCanvas) return;
+    nudge(contrast, 12, 60, 160);
+    nudge(saturate, 6, 0, 200);
+    syncAllLabels(); clearBgUndo(); scheduleProcess();
+  });
+
+  /* ---------------- pixel ops: sharpen & skin brighten ---------------- */
+  function convolveSharpen(imgData, amount){
+    if(amount<=0) return imgData;
+    var w=imgData.width, h=imgData.height, src=imgData.data;
+    var out = new Uint8ClampedArray(src.length);
+    var k = [0,-1,0, -1,5,-1, 0,-1,0];
+    var t = Math.min(amount/100, 0.85);
+    for(var y=0;y<h;y++){
+      for(var x=0;x<w;x++){
+        var idx=(y*w+x)*4;
+        if(x===0||y===0||x===w-1||y===h-1){
+          out[idx]=src[idx]; out[idx+1]=src[idx+1]; out[idx+2]=src[idx+2]; out[idx+3]=src[idx+3];
+          continue;
+        }
+        for(var c=0;c<3;c++){
+          var sum=0, ki=0;
+          for(var ky=-1;ky<=1;ky++){
+            for(var kx=-1;kx<=1;kx++){
+              var pidx=((y+ky)*w+(x+kx))*4+c;
+              sum += src[pidx]*k[ki++];
+            }
+          }
+          var orig = src[idx+c];
+          out[idx+c] = orig*(1-t) + sum*t;
+        }
+        out[idx+3]=src[idx+3];
+      }
+    }
+    return new ImageData(out, w, h);
+  }
+
+  function brightenFaces(imgData, amount){
+    if(amount<=0) return imgData;
+    var d = imgData.data;
+    var intensity = (amount/100)*0.5;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i], g=d[i+1], b=d[i+2];
+      var y = 0.299*r+0.587*g+0.114*b;
+      var cb = 128 - 0.168736*r - 0.331264*g + 0.5*b;
+      var cr = 128 + 0.5*r - 0.418688*g - 0.081312*b;
+      if(cb>=77 && cb<=127 && cr>=133 && cr<=173 && y>50){
+        d[i]   = r + (255-r)*intensity;
+        d[i+1] = g + (255-g)*intensity;
+        d[i+2] = b + (255-b)*intensity;
+      }
+    }
+    return imgData;
+  }
+
+  function autoLevels(imgData){
+    var d = imgData.data;
+    var min=[255,255,255], max=[0,0,0];
+    for(var i=0;i<d.length;i+=4){
+      for(var c=0;c<3;c++){
+        if(d[i+c]<min[c]) min[c]=d[i+c];
+        if(d[i+c]>max[c]) max[c]=d[i+c];
+      }
+    }
+    for(i=0;i<d.length;i+=4){
+      for(c=0;c<3;c++){
+        var range = max[c]-min[c];
+        if(range>10){ d[i+c] = clamp((d[i+c]-min[c])*255/range, 0, 255); }
+      }
+    }
+    return imgData;
+  }
+
+  function luminanceStats(imgData){
+    var d = imgData.data, sum=0, sumSq=0, n=0;
+    var stride = 16*4;
+    for(var i=0;i<d.length;i+=stride){
+      var l = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+      sum += l; sumSq += l*l; n++;
+    }
+    var mean = n ? sum/n : 128;
+    var variance = n ? (sumSq/n - mean*mean) : 0;
+    return { mean: mean, sd: Math.sqrt(Math.max(variance,0)) };
+  }
+
+  function updateHint(stats){
+    var msg;
+    if(stats.mean < 85){ msg = '💡 This shot looks a little dark — try <b>Brighten</b> below.'; }
+    else if(stats.mean > 185){ msg = '💡 This shot looks quite bright/washed out — try <b>Darken</b> below.'; }
+    else if(stats.sd < 32){ msg = '💡 This shot looks a bit flat or dull — try <b>Add pop</b> below.'; }
+    else { msg = '✅ Exposure looks well balanced — no changes needed.'; }
+    photoHint.innerHTML = msg;
+  }
+
+  // brightness / contrast / saturation applied directly to pixels (deterministic,
+  // updates immediately — unlike ctx.filter which can lag one frame on GPU canvases)
+  function applyBCS(imgData, bPct, cPct, sPct){
+    var b = bPct/100, c = cPct/100, s = sPct/100;
+    if(b===1 && c===1 && s===1) return imgData;
+    var d = imgData.data;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i], g=d[i+1], bl=d[i+2];
+      // brightness
+      r*=b; g*=b; bl*=b;
+      // contrast (pivot at mid-grey)
+      r=(r-128)*c+128; g=(g-128)*c+128; bl=(bl-128)*c+128;
+      // saturation (lerp toward Rec.709 luma)
+      var lum = 0.2126*r + 0.7152*g + 0.0722*bl;
+      r=lum+(r-lum)*s; g=lum+(g-lum)*s; bl=lum+(bl-lum)*s;
+      d[i]=clamp(r,0,255); d[i+1]=clamp(g,0,255); d[i+2]=clamp(bl,0,255);
+    }
+    return imgData;
+  }
+
+  /* ---------------- main render pipeline ---------------- */
+  var pending = false;
+  function scheduleProcess(){
+    if(pending) return;
+    pending = true;
+    requestAnimationFrame(function(){ pending=false; process(); });
+  }
+
+  function autoCommitToSheet(){
+    if(!state.sourceCanvas) return;
+    var c = state.committedCanvas;
+    if(!c) {
+      c = document.createElement('canvas');
+      state.committedCanvas = c;
+    }
+    c.width = processedCanvas.width;
+    c.height = processedCanvas.height;
+    c.getContext('2d').drawImage(processedCanvas, 0, 0);
+    state.committedSizeMm = {w:state.sizeMm.w, h:state.sizeMm.h};
+    buildSheet();
+  }
+
+  function process(){
+    if(!state.sourceCanvas) return;
+    var r = cropRect();
+
+    // crop-frame positioning preview — CSS filter here is instant + cheap
+    frameCtx.clearRect(0,0,frameCanvas.width,frameCanvas.height);
+    frameCanvas.style.filter = cssFilterString();
+    frameCtx.drawImage(state.sourceCanvas, r.sx, r.sy, r.sw, r.sh, 0, 0, frameCanvas.width, frameCanvas.height);
+
+    // full-quality processed output at target print resolution — all effects baked into pixels
+    var tw = mmToPx(state.sizeMm.w, state.dpi);
+    var th = mmToPx(state.sizeMm.h, state.dpi);
+    processedCanvas.width = tw; processedCanvas.height = th;
+    processedCtx.clearRect(0,0,tw,th);
+    processedCtx.drawImage(state.sourceCanvas, r.sx, r.sy, r.sw, r.sh, 0, 0, tw, th);
+
+    var imgData = processedCtx.getImageData(0,0,tw,th);
+    imgData = applyBCS(imgData, +brightness.value, +contrast.value, +saturate.value);
+    imgData = convolveSharpen(imgData, +sharpen.value);
+    imgData = brightenFaces(imgData, +faceBrighten.value);
+
+    // Dynamic background replacement (corner flood fills)
+    if(state.bgMode && state.bgMode !== 'original') {
+      var colorHex = getSelectedBgColor();
+      var fillRgb = hexToRgb(colorHex);
+      var tol = (+bgToleranceSlider.value) * 3;
+      runFloodFill(imgData, 5, 5, fillRgb, tol);
+      runFloodFill(imgData, imgData.width - 6, 5, fillRgb, tol);
+    }
+
+    // Dynamic manual clicks
+    if(state.bgMode && state.bgMode !== 'original' && state.manualBgFills.length > 0) {
+      var colorHex = getSelectedBgColor();
+      var fillRgb = hexToRgb(colorHex);
+      var tol = (+bgToleranceSlider.value) * 3;
+      state.manualBgFills.forEach(function(op) {
+        var px = Math.floor(((op.srcX - r.sx) / r.sw) * tw);
+        var py = Math.floor(((op.srcY - r.sy) / r.sh) * th);
+        runFloodFill(imgData, px, py, fillRgb, tol);
+      });
+    }
+
+    processedCtx.putImageData(imgData, 0, 0);
+    updateHint(luminanceStats(imgData));
+
+    pxDims.textContent = tw+' × '+th+' px';
+
+    // Auto-commit to sheet in real-time
+    autoCommitToSheet();
+  }
+
+  /* ---------------- background cleanup (flood fill) ---------------- */
+  function clearBgUndo(){
+    state.manualBgFills = [];
+    bgUndo.disabled = true;
+  }
+
+  function getSelectedBgColor() {
+    switch(state.bgMode) {
+      case 'white': return '#ffffff';
+      case 'blue': return '#b9d2f2'; // beautiful light blue
+      case 'grey': return '#e5e5e5'; // light grey
+      case 'custom': return customBgColor.value;
+      default: return '#ffffff';
+    }
+  }
+
+  function setBgMode(mode) {
+    state.bgMode = mode;
+    
+    [bgModeOriginal, bgModeWhite, bgModeBlue, bgModeGrey, bgModeCustom].forEach(function(btn) {
+      btn.classList.remove('active-bg');
+    });
+    
+    if(mode === 'original') bgModeOriginal.classList.add('active-bg');
+    else if(mode === 'white') bgModeWhite.classList.add('active-bg');
+    else if(mode === 'blue') bgModeBlue.classList.add('active-bg');
+    else if(mode === 'grey') bgModeGrey.classList.add('active-bg');
+    else if(mode === 'custom') bgModeCustom.classList.add('active-bg');
+    
+    var isOriginal = (mode === 'original');
+    customBgContainer.style.display = (mode === 'custom') ? 'flex' : 'none';
+    bgToleranceRow.style.display = isOriginal ? 'none' : 'block';
+    manualCleanContainer.style.display = isOriginal ? 'none' : 'block';
+    
+    if(isOriginal && state.bgArmed) {
+      state.bgArmed = false;
+      bgArm.textContent = 'Turn on click-to-clean';
+      bgArm.classList.remove('primary');
+    }
+  }
+
+  bgArm.addEventListener('click', function(){
+    state.bgArmed = !state.bgArmed;
+    bgArm.textContent = state.bgArmed ? 'Click the background now…' : 'Turn on click-to-clean';
+    bgArm.classList.toggle('primary', state.bgArmed);
+  });
+
+  processedCanvas.addEventListener('click', function(e){
+    if(!state.bgArmed || !state.sourceCanvas) return;
+    var rect = processedCanvas.getBoundingClientRect();
+    var scaleX = processedCanvas.width/rect.width;
+    var scaleY = processedCanvas.height/rect.height;
+    var px = Math.floor((e.clientX-rect.left)*scaleX);
+    var py = Math.floor((e.clientY-rect.top)*scaleY);
+    
+    var r = cropRect();
+    var tw = processedCanvas.width;
+    var th = processedCanvas.height;
+    var srcX = r.sx + (px / tw) * r.sw;
+    var srcY = r.sy + (py / th) * r.sh;
+
+    state.manualBgFills.push({ srcX: srcX, srcY: srcY });
+    bgUndo.disabled = false;
+
+    scheduleProcess();
+  });
+
+  bgUndo.addEventListener('click', function(){
+    if(state.manualBgFills.length > 0) {
+      state.manualBgFills.pop();
+      if(state.manualBgFills.length === 0) {
+        bgUndo.disabled = true;
+      }
+      scheduleProcess();
+    }
+  });
+
+  function hexToRgb(hex){
+    var v = parseInt(hex.replace('#',''),16);
+    return [(v>>16)&255, (v>>8)&255, v&255];
+  }
+
+  function runFloodFill(imgData, startX, startY, fillRgb, tol){
+    var w = imgData.width, h = imgData.height;
+    if(startX<0||startY<0||startX>=w||startY>=h) return;
+    var d = imgData.data;
+
+    var tolVal = tol;
+    var startIdx = (startY*w+startX)*4;
+    var r0=d[startIdx], g0=d[startIdx+1], b0=d[startIdx+2];
+
+    var visited = new Uint8Array(w*h);
+    var stack = [startX, startY];
+    var count = 0, maxOps = w*h*4;
+
+    while(stack.length){
+      var y = stack.pop(), x = stack.pop();
+      if(x<0||y<0||x>=w||y>=h) continue;
+      var vi = y*w+x;
+      if(visited[vi]) continue;
+      visited[vi]=1;
+      var idx = vi*4;
+      var dr=d[idx]-r0, dg=d[idx+1]-g0, db=d[idx+2]-b0;
+      var dist = Math.abs(dr)+Math.abs(dg)+Math.abs(db);
+      if(dist>tolVal) continue;
+      d[idx]=fillRgb[0]; d[idx+1]=fillRgb[1]; d[idx+2]=fillRgb[2];
+      count++;
+      if(count>maxOps) break;
+      stack.push(x+1,y); stack.push(x-1,y); stack.push(x,y+1); stack.push(x,y-1);
+    }
+  }
+
+  /* ---------------- commit to sheet ---------------- */
+  commitBtn.addEventListener('click', function(){
+    sheetCanvas.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  bgModeOriginal.addEventListener('click', function(){ setBgMode('original'); scheduleProcess(); });
+  bgModeWhite.addEventListener('click', function(){ setBgMode('white'); scheduleProcess(); });
+  bgModeBlue.addEventListener('click', function(){ setBgMode('blue'); scheduleProcess(); });
+  bgModeGrey.addEventListener('click', function(){ setBgMode('grey'); scheduleProcess(); });
+  bgModeCustom.addEventListener('click', function(){ setBgMode('custom'); scheduleProcess(); });
+  bgToleranceSlider.addEventListener('input', function(){
+    bgToleranceVal.textContent = bgToleranceSlider.value+'%';
+    scheduleProcess();
+  });
+  customBgColor.addEventListener('input', function(){
+    scheduleProcess();
+  });
+
+  /* ---------------- sheet builder ---------------- */
+  [orientationSel, marginMm, gapMm, guideColor, showGuides].forEach(function(el){
+    el.addEventListener('input', buildSheet);
+    el.addEventListener('change', buildSheet);
+  });
+  copiesMode.addEventListener('change', function(){
+    copiesCountField.style.display = copiesMode.value==='manual' ? 'flex' : 'none';
+    buildSheet();
+  });
+  copiesCount.addEventListener('input', buildSheet);
+  quick4.addEventListener('click', function(){
+    copiesMode.value = 'manual';
+    copiesCountField.style.display = 'flex';
+    copiesCount.value = 4;
+    buildSheet();
+  });
+
+  function buildSheet(){
+    if(!state.committedCanvas){
+      sheetCanvas.style.display='none';
+      sheetEmpty.style.display='block';
+      downloadBtn.disabled = true; printBtn.disabled = true;
+      countBadgeWrap.innerHTML = '';
+      return;
+    }
+    var dpi = state.dpi;
+    var landscape = orientationSel.value==='landscape';
+    var sheetWmm = landscape ? 152.4 : 101.6;
+    var sheetHmm = landscape ? 101.6 : 152.4;
+    var photoWmm = state.committedSizeMm.w, photoHmm = state.committedSizeMm.h;
+    var mg = +marginMm.value, gap = +gapMm.value;
+
+    var cols = Math.max(0, Math.floor((sheetWmm - 2*mg + gap) / (photoWmm+gap)));
+    var rows = Math.max(0, Math.floor((sheetHmm - 2*mg + gap) / (photoHmm+gap)));
+    var maxCount = cols*rows;
+
+    var manual = copiesMode.value==='manual';
+    var drawCount, packCols, packRows;
+    if(manual){
+      var wanted = Math.max(1, Math.round(+copiesCount.value || 1));
+      drawCount = Math.min(wanted, Math.max(maxCount,0));
+      if(maxCount>0 && wanted>maxCount) copiesCount.value = maxCount;
+      // compact, squarish block anchored to the top-left (e.g. 4 -> 2x2)
+      packCols = Math.max(1, Math.min(cols, Math.ceil(Math.sqrt(drawCount))));
+      packRows = Math.ceil(drawCount / packCols);
+      while(packRows > rows && packCols < cols){ packCols++; packRows = Math.ceil(drawCount/packCols); }
+    } else {
+      drawCount = maxCount;
+      packCols = cols; packRows = rows;
+    }
+
+    sheetCanvas.width = mmToPx(sheetWmm, dpi);
+    sheetCanvas.height = mmToPx(sheetHmm, dpi);
+    sheetCtx.fillStyle = '#ffffff';
+    sheetCtx.fillRect(0,0,sheetCanvas.width, sheetCanvas.height);
+
+    if(cols>0 && rows>0 && drawCount>0){
+      var pw = mmToPx(photoWmm, dpi), ph = mmToPx(photoHmm, dpi);
+      var startXmm, startYmm;
+      if(manual){
+        // left/top anchored so the rest of the sheet stays blank
+        startXmm = mg;
+        startYmm = mg;
+      } else {
+        var usedW = cols*photoWmm + (cols-1)*gap;
+        var usedH = rows*photoHmm + (rows-1)*gap;
+        startXmm = mg + (sheetWmm-2*mg-usedW)/2;
+        startYmm = mg + (sheetHmm-2*mg-usedH)/2;
+      }
+
+      var idx = 0;
+      for(var rr=0; rr<packRows; rr++){
+        for(var cc=0; cc<packCols; cc++){
+          if(idx < drawCount){
+            var xmm = startXmm + cc*(photoWmm+gap);
+            var ymm = startYmm + rr*(photoHmm+gap);
+            var x = mmToPx(xmm, dpi), y = mmToPx(ymm, dpi);
+            sheetCtx.drawImage(state.committedCanvas, x, y, pw, ph);
+            if(showGuides.checked){
+              drawCropMarks(x, y, pw, ph, dpi);
+            }
+          }
+          idx++;
+        }
+      }
+    }
+
+    sheetCanvas.style.display='block';
+    sheetEmpty.style.display='none';
+    downloadBtn.disabled = drawCount===0;
+    printBtn.disabled = drawCount===0;
+
+    var badge;
+    if(maxCount===0){
+      badge = '<span class="count-badge" style="background:var(--stamp)">Photo is larger than the sheet — reduce size or margins</span>';
+    } else if(manual){
+      badge = '<span class="count-badge">Printing <b>'+drawCount+'</b> · '+packCols+'×'+packRows+' block on the left · rest blank</span>';
+    } else {
+      badge = '<span class="count-badge">Fits <b>'+maxCount+'</b> photo'+(maxCount===1?'':'s')+' automatically · '+cols+'×'+rows+' grid</span>';
+    }
+    countBadgeWrap.innerHTML = badge;
+  }
+
+  function drawCropMarks(x,y,w,h,dpi){
+    var len = mmToPx(2.2, dpi);
+    var off = mmToPx(0.9, dpi);
+    sheetCtx.strokeStyle = guideColor.value;
+    sheetCtx.lineWidth = Math.max(1, mmToPx(0.15, dpi));
+    var corners = [
+      [x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]
+    ];
+    corners.forEach(function(cn){
+      var cx=cn[0], cy=cn[1], dx=cn[2], dy=cn[3];
+      sheetCtx.beginPath();
+      sheetCtx.moveTo(cx+dx*off, cy);
+      sheetCtx.lineTo(cx+dx*(off+len), cy);
+      sheetCtx.moveTo(cx, cy+dy*off);
+      sheetCtx.lineTo(cx, cy+dy*(off+len));
+      sheetCtx.stroke();
+    });
+  }
+
+  /* ---------------- download & print ---------------- */
+  downloadBtn.addEventListener('click', function(){
+    var a = document.createElement('a');
+    a.download = 'passport-photo-4x6-sheet.png';
+    a.href = sheetCanvas.toDataURL('image/png');
+    a.click();
+  });
+
+  printBtn.addEventListener('click', function(){
+    var landscape = orientationSel.value==='landscape';
+    var styleTag = document.getElementById('printPageStyle');
+    if(!styleTag){
+      styleTag = document.createElement('style');
+      styleTag.id = 'printPageStyle';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = '@page{size:'+(landscape?'6in 4in':'4in 6in')+';margin:0;} #printArea img{width:'+(landscape?'6in':'4in')+';height:'+(landscape?'4in':'6in')+';}';
+    document.getElementById('printImg').src = sheetCanvas.toDataURL('image/png');
+    setTimeout(function(){ window.print(); }, 60);
+  });
+
+  /* ---------------- init ---------------- */
+  layoutFrame();
+  buildSheet();
+
+})();
+</script>
+</body>
+</html>
