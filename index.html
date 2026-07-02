@@ -404,6 +404,19 @@
         <label for="copiesCount">Number of copies</label>
         <input type="number" id="copiesCount" value="4" min="1" max="40">
       </div>
+      
+      <div class="field">
+        <label><input type="checkbox" id="enableBorder"> Enable Photo Border</label>
+      </div>
+      <div class="field">
+        <label for="borderColor">Border Color</label>
+        <input type="color" id="borderColor" value="#000000">
+      </div>
+      <div class="field">
+        <label for="borderWidth">Border Width (px)</label>
+        <input type="number" id="borderWidth" value="2" min="1" max="20">
+      </div>
+
       <div class="field">
         <label for="guideColor">Cut guide colour</label>
         <input type="color" id="guideColor" value="#b8452f">
@@ -1036,7 +1049,10 @@
   });
 
   /* ---------------- sheet builder ---------------- */
-  [orientationSel, marginMm, gapMm, guideColor, showGuides].forEach(function(el){
+  var enableBorder=document.getElementById("enableBorder");
+var borderColor=document.getElementById("borderColor");
+var borderWidth=document.getElementById("borderWidth");
+[orientationSel, marginMm, gapMm, guideColor, showGuides, enableBorder, borderColor, borderWidth].forEach(function(el){
     el.addEventListener('input', buildSheet);
     el.addEventListener('change', buildSheet);
   });
@@ -1113,6 +1129,11 @@
             var ymm = startYmm + rr*(photoHmm+gap);
             var x = mmToPx(xmm, dpi), y = mmToPx(ymm, dpi);
             sheetCtx.drawImage(state.committedCanvas, x, y, pw, ph);
+            if(enableBorder && enableBorder.checked){
+              sheetCtx.strokeStyle=borderColor.value;
+              sheetCtx.lineWidth=parseInt(borderWidth.value)||2;
+              sheetCtx.strokeRect(x,y,pw,ph);
+            }
             if(showGuides.checked){
               drawCropMarks(x, y, pw, ph, dpi);
             }
