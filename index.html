@@ -1092,11 +1092,15 @@ var borderWidth=document.getElementById("borderWidth");
     if(manual){
       var wanted = Math.max(1, Math.round(+copiesCount.value || 1));
       drawCount = Math.min(wanted, Math.max(maxCount,0));
-      if(maxCount>0 && wanted>maxCount) copiesCount.value = maxCount;
-      // compact, squarish block anchored to the top-left (e.g. 4 -> 2x2)
-      packCols = Math.max(1, Math.min(cols, Math.ceil(Math.sqrt(drawCount))));
-      packRows = Math.ceil(drawCount / packCols);
-      while(packRows > rows && packCols < cols){ packCols++; packRows = Math.ceil(drawCount/packCols); }
+      if(maxCount>0 && wanted>maxCount) copiesCount.value=maxCount;
+
+      if(drawCount<=rows){
+        packCols=1;
+        packRows=drawCount;
+      }else{
+        packCols=Math.ceil(drawCount/rows);
+        packRows=Math.min(rows,drawCount);
+      }
     } else {
       drawCount = maxCount;
       packCols = cols; packRows = rows;
